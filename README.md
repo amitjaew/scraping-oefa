@@ -3,14 +3,13 @@
 Esta es una herramienta de línea de comandos (CLI) para hacer scraping del sitio [https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml](https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml).
 
 ## Prerrequisitos
-
-Asegúrate de tener instalados Node.js y npm en tu sistema.
+- Node
+- npm
 
 ## Instalación
-
-1.  Clona este repositorio o descarga los archivos.
+1.  Clona este repositorio.
 2.  Abre una terminal en el directorio del proyecto.
-3.  Instala las dependencias del proyecto con el siguiente comando:
+3.  Instala las dependencias:
 
     ```bash
     npm install
@@ -18,15 +17,15 @@ Asegúrate de tener instalados Node.js y npm en tu sistema.
 
 ## Uso
 
-Puedes ejecutar la herramienta de scraping utilizando el comando `npm start`, seguido de los argumentos necesarios.
+Puedes ejecutar la herramienta utilizando el comando `npm start`, seguido de los argumentos necesarios.
 
 ### Argumentos
 
-La herramienta acepta 2 o 3 argumentos numéricos, además de algunas banderas opcionales.
+La herramienta acepta 2 o 3 argumentos numéricos, además de algunas flags opcionales.
 
 #### 2 Argumentos: `<jump>` y `<limit>`
 
-*   `<jump>`: El número de elementos a omitir en cada iteración.
+*   `<jump>`: El número de elementos a procesar en cada iteración.
 *   `<limit>`: El número máximo de elementos a scrapear.
 
 Ejemplo:
@@ -35,12 +34,12 @@ Ejemplo:
 npm start 5 10
 ```
 
-Este comando iniciará el scraper, omitiendo 5 elementos en cada iteración y deteniéndose después de scrapear 10 elementos.
+Este comando iniciará el scraper, procesando 5 elementos en cada iteración y deteniéndose después de scrapear 10 elementos.
 
 #### 3 Argumentos: `<start>`, `<jump>` y `<limit>`
 
 *   `<start>`: El índice inicial desde el cual comenzar el scraping.
-*   `<jump>`: El número de elementos a omitir en cada iteración.
+*   `<jump>`: El número de elementos a procesar en cada iteración.
 *   `<limit>`: El número máximo de elementos a scrapear.
 
 Ejemplo:
@@ -49,7 +48,7 @@ Ejemplo:
 npm start 0 5 10
 ```
 
-Este comando iniciará el scraper en el índice 0, omitirá 5 elementos en cada iteración y se detendrá después de scrapear 10 elementos.
+Este comando iniciará el scraper en el índice 0, procesará 5 elementos en cada iteración y se detendrá después de scrapear 10 elementos.
 
 ### Flags Opcionales
 
