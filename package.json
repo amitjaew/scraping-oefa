@@ -6,7 +6,8 @@
   "main": "utils.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node main.ts"
+    "start": "ts-node main.ts",
+    "clean": "rm data/* && rm files/*"
   },
   "keywords": [],
   "author": "",

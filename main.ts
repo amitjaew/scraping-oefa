@@ -1,97 +1,96 @@
-import { postJSFEnumerate, postJSFEStarter, submitInfraccion } from "./utils";
-import fs from "fs/promises";
-import path from "path";
-import * as cheerio from "cheerio";
-import axios from "axios";
+import Scraper from "./scraper";
 
-interface WebsiteState {
-  viewState: string;
-  sessionId: string;
+/*
+async function main() {
+  const scraper = new Scraper();
+
+  scraper.runLoop({
+    start: 0,
+    limit: 10,
+    jump: 5,
+    runIninitely: false,
+    extractFiles: true,
+  });
 }
 
-export async function getState(): Promise<WebsiteState | undefined> {
-  const url = "https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml";
-  const res = await axios.get(url);
-  const cookieMatch = res.headers["set-cookie"]?.[0].match(/=(.*?);/);
+main().catch(console.error);
 
-  const $ = cheerio.load(res.data);
-  const viewState = $("#j_id1\\:javax\\.faces\\.ViewState\\:0").val();
-  const sessionId = cookieMatch?.[1];
+*/
 
-  if (!sessionId || typeof viewState !== "string") return undefined;
+function parseArgs(args: string[]): {
+  start: number;
+  limit: number;
+  jump: number;
+  runIninitely: boolean;
+  extractFiles: boolean;
+} {
+  let runIninitely = false;
+  let extractFiles = true;
 
-  return {
-    viewState,
-    sessionId,
-  };
-}
-
-export function extractData(text: string) {
-  const rows: Array<{
-    index: string;
-    resolutionNumber: string;
-    companyName: string;
-    facility: string;
-    sector: string;
-    sanctionResolution: string;
-    uuid: string;
-  }> = [];
-
-  const $xml = cheerio.load(text, { xmlMode: true });
-  $xml("update").each((_, el) => {
-    const elText = $xml(el).html();
-    const $ = cheerio.load(`<table><tbody>${elText}</tbody></table>`);
-
-    $("tr[role='row']").each((_, el) => {
-      const cells = $(el).find("td");
-      const onclickAttr = $(cells[6]).find("a").attr("onclick");
-      const uuidMatch = onclickAttr?.match(/'param_uuid':'([^']+)'/);
-      if (!uuidMatch) return;
-
-      rows.push({
-        index: $(cells[0]).text().trim(),
-        resolutionNumber: $(cells[1]).text().trim(),
-        companyName: $(cells[2]).text().trim(),
-        facility: $(cells[3]).text().trim(),
-        sector: $(cells[4]).text().trim(),
-        sanctionResolution: $(cells[5]).text().trim(),
-        uuid: uuidMatch?.[1] ?? null,
-      });
-    });
+  // Check for flags
+  const filteredArgs = args.filter((arg) => {
+    if (arg === "--run-infinitely") {
+      runIninitely = true;
+      return false;
+    }
+    if (arg === "--no-extract") {
+      extractFiles = false;
+      return false;
+    }
+    return true;
   });
 
-  return rows;
+  if (filteredArgs.length === 2) {
+    return {
+      start: 0,
+      jump: parseInt(filteredArgs[0], 10),
+      limit: parseInt(filteredArgs[1], 10),
+      runIninitely,
+      extractFiles,
+    };
+  } else if (filteredArgs.length === 3) {
+    return {
+      start: parseInt(filteredArgs[0], 10),
+      jump: parseInt(filteredArgs[1], 10),
+      limit: parseInt(filteredArgs[2], 10),
+      runIninitely,
+      extractFiles,
+    };
+  } else {
+    throw new Error(
+      "Invalid number of arguments. Expected either 2 (jump, limit) or 3 (start, jump, limit) arguments with optional flags --run-infinitely and --no-extract.",
+    );
+  }
 }
 
 async function main() {
-  const state = await getState();
-  console.log(state);
+  const scraper = new Scraper();
+  const args = process.argv.slice(2);
 
-  if (!state) return;
-  const _ = await postJSFEStarter(state);
-  const res_2 = await postJSFEnumerate({
-    first: 100,
-    rows: 10,
-    viewState: state.viewState,
-    sessionId: state.sessionId,
-  });
-  const data = extractData(res_2);
-  console.log(data);
+  try {
+    const { start, limit, jump, runIninitely, extractFiles } = parseArgs(args);
 
-  if (data.length == 0 || !data[0].uuid) {
-    return;
+    scraper.runLoop({
+      start,
+      limit,
+      jump,
+      runIninitely,
+      extractFiles,
+    });
+  } catch (error) {
+    console.error(
+      "Error:",
+      error instanceof Error ? error.message : error,
+      "\n\n",
+    );
+    console.log("Usage:\n");
+    console.log("\tnpm start <jump> <limit> [--run-infinitely] [--no-extract]");
+    console.log("\tor");
+    console.log(
+      "\tnpm start <start> <jump> <limit> [--run-infinitely] [--no-extract]",
+    );
+    process.exit(1);
   }
-  console.log("Saving file", data[0]);
-  const res = await submitInfraccion({
-    uuid: data[0].uuid,
-    ...state,
-  });
-
-  if (!res?.data) throw new Error("Empty response body");
-
-  const outputPath = path.resolve(process.cwd(), "infraction.pdf");
-  await fs.writeFile(outputPath, res.data);
-  console.log(`PDF saved to ${outputPath}`);
 }
 
 main().catch(console.error);

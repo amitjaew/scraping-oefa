@@ -1,4 +1,73 @@
 import axios from "axios";
+import * as cheerio from "cheerio";
+
+interface WebsiteState {
+  viewState: string;
+  sessionId: string;
+}
+
+export async function getState(): Promise<WebsiteState> {
+  const url = "https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml";
+  const res = await axios.get(url);
+  const cookieMatch = res.headers["set-cookie"]?.[0].match(/=(.*?);/);
+
+  const $ = cheerio.load(res.data);
+  const viewState = $("#j_id1\\:javax\\.faces\\.ViewState\\:0").val();
+  const sessionId = cookieMatch?.[1];
+
+  if (!sessionId || typeof viewState !== "string") {
+    throw new Error(
+      "Failed to retrieve required session data: missing sessionId or viewState",
+    );
+  }
+
+  return {
+    viewState,
+    sessionId,
+  };
+}
+
+export function parseData(text: string) {
+  const rows: Array<{
+    index: string;
+    resolutionNumber: string;
+    companyName: string;
+    facility: string;
+    sector: string;
+    sanctionResolution: string;
+    uuid: string;
+  }> = [];
+
+  const $xml = cheerio.load(text, { xmlMode: true });
+
+  const update = $xml("update[id='listarDetalleInfraccionRAAForm:dt']");
+  if (!update.length) return rows;
+
+  const html = update.text();
+  const $ = cheerio.load(`<table><tbody>${html}</tbody></table>`);
+
+  $("tr[role='row']").each((_, row) => {
+    const cells = $(row).find("td");
+    if (cells.length < 7) return;
+
+    const cellHtml = $(cells[6]).html() ?? "";
+
+    const uuid = cellHtml.match(/param_uuid':'([^']+)'/)?.[1];
+    if (!uuid) return;
+
+    rows.push({
+      index: $(cells[0]).text().trim(),
+      resolutionNumber: $(cells[1]).text().trim(),
+      companyName: $(cells[2]).text().trim(),
+      facility: $(cells[3]).text().trim(),
+      sector: $(cells[4]).text().trim(),
+      sanctionResolution: $(cells[5]).text().trim(),
+      uuid,
+    });
+  });
+
+  return rows;
+}
 
 interface PostSubmitInfractionParams {
   uuid: string;
@@ -67,7 +136,8 @@ export async function postJSFEStarter({
   viewState,
   sessionId,
 }: PostJSFEnumerateParams): Promise<string> {
-  const url = `https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml;jsessionid=${sessionId}`;
+  const url = "https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml";
+  // const url = `https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml;jsessionid=${sessionId}`;
 
   const body = new URLSearchParams({
     "javax.faces.partial.ajax": "true",
@@ -119,8 +189,8 @@ export async function postJSFEnumerate({
   viewState,
   sessionId,
 }: PostJSFEnumerateParams): Promise<string> {
-  // const url = "https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml";
-  const url = `https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml;jsessionid=${sessionId}`;
+  const url = "https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml";
+  // const url = `https://publico.oefa.gob.pe/repdig/consulta/consultaTfa.xhtml;jsessionid=${sessionId}`;
 
   const body = new URLSearchParams({
     "javax.faces.partial.ajax": "true",
@@ -167,4 +237,36 @@ export async function postJSFEnumerate({
 
   const res = await axios.post(url, body.toString(), { headers: headers });
   return res.data;
+}
+
+interface RetryOptions {
+  maxRetries?: number;
+  initialDelay?: number;
+  backoffFactor?: number;
+}
+
+export async function executeWithRetry<T>(
+  promiseFn: () => Promise<T>,
+  options: RetryOptions = {},
+): Promise<T> {
+  const { maxRetries = 3, initialDelay = 1000, backoffFactor = 2 } = options;
+
+  let retryCount = 0;
+  let delay = initialDelay;
+
+  while (true) {
+    try {
+      return await promiseFn();
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 429 && retryCount < maxRetries) {
+        retryCount++;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= backoffFactor;
+        continue;
+      }
+
+      throw error;
+    }
+  }
 }
