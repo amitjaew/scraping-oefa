@@ -91,10 +91,19 @@ async function main() {
       "\n\n",
     );
     console.log("Usage:\n");
-    console.log("\tnpm start <jump> <limit> [--run-infinitely] [--no-extract]");
+    console.log(
+      "\tnpm start <jump> <limit> -- [--run-infinitely] [--no-extract]",
+    );
     console.log("\tor");
     console.log(
-      "\tnpm start <start> <jump> <limit> [--run-infinitely] [--no-extract]",
+      "\tnpm start <start> <jump> <limit> -- [--run-infinitely] [--no-extract]",
+    );
+    console.log(
+      "\n\nTo pass flags to the script, you need to add '--' before them, like this:",
+    );
+    console.log("  npm start <jump> <limit> -- --run-infinitely --no-extract");
+    console.log(
+      "  npm start <start> <jump> <limit> -- --run-infinitely --no-extract",
     );
     process.exit(1);
   }
