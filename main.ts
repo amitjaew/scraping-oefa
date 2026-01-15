@@ -28,6 +28,46 @@ export async function getState(): Promise<WebsiteState | undefined> {
   };
 }
 
+export function extractData(text: string) {
+  const rows: Array<{
+    index: string;
+    resolutionNumber: string;
+    companyName: string;
+    facility: string;
+    sector: string;
+    sanctionResolution: string;
+    uuid: string | null;
+  }> = [];
+
+  const $xml = cheerio.load(text, { xmlMode: true });
+  $xml("update").each((_, el) => {
+    console.log("\n\n\n---------------------------------");
+    console.log("ITERATOR");
+    const elText = $xml(el).html();
+    console.log(elText);
+    const $ = cheerio.load(`<table><tbody>${elText}</tbody></table>`);
+    $("tr[role='row']").each((_, el) => {
+      const cells = $(el).find("td");
+
+      const onclickAttr = $(cells[6]).find("a").attr("onclick");
+
+      const uuidMatch = onclickAttr?.match(/'param_uuid':'([^']+)'/);
+
+      rows.push({
+        index: $(cells[0]).text().trim(),
+        resolutionNumber: $(cells[1]).text().trim(),
+        companyName: $(cells[2]).text().trim(),
+        facility: $(cells[3]).text().trim(),
+        sector: $(cells[4]).text().trim(),
+        sanctionResolution: $(cells[5]).text().trim(),
+        uuid: uuidMatch?.[1] ?? null,
+      });
+    });
+  });
+
+  return rows;
+}
+
 async function main() {
   const state = await getState();
   console.log(state);
@@ -38,17 +78,23 @@ async function main() {
   console.log("-----------------------");
 
   const res_2 = await postJSFEnumerate({
-    first: 10,
-    rows: 10,
+    first: 0,
+    rows: 20,
     viewState: state.viewState,
     sessionId: state.sessionId,
   });
-  console.log(res_2);
-  // NOTE TO SELF: THIS SHIT ONLY WORKS WHEN RES_1 IS CALLED FIRST
+  // console.log(res_2);
+  console.log("-----------------------");
+  const data = extractData(res_2);
+  console.log(data);
 
-  /*
+  if (data.length == 0 || !data[0].uuid) {
+    return;
+  }
+  console.log("Saving file", data[0]);
   const res = await submitInfraccion({
-    uuid: "b8239a70-4239-475d-9505-573fe101548d",
+    uuid: data[0].uuid,
+    ...state,
   });
 
   if (!res?.data) throw new Error("Empty response body");
@@ -56,7 +102,6 @@ async function main() {
   const outputPath = path.resolve(process.cwd(), "infraction.pdf");
   await fs.writeFile(outputPath, res.data);
   console.log(`PDF saved to ${outputPath}`);
-  */
 }
 
 main().catch(console.error);
