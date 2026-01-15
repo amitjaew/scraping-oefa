@@ -111,6 +111,7 @@ export default class Scraper {
         continue;
       }
       const data = parseData(res).map((d) => ({ ...d, pdfSaved: false }));
+      if (data.length == 0) break;
       console.log(data);
 
       if (!extractFiles) {
