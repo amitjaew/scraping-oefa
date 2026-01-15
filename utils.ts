@@ -27,16 +27,19 @@ export async function getState(): Promise<WebsiteState> {
   };
 }
 
+export interface PayloadData {
+  pdfSaved: boolean;
+  index: string;
+  resolutionNumber: string;
+  companyName: string;
+  facility: string;
+  sector: string;
+  sanctionResolution: string;
+  uuid: string;
+}
+
 export function parseData(text: string) {
-  const rows: Array<{
-    index: string;
-    resolutionNumber: string;
-    companyName: string;
-    facility: string;
-    sector: string;
-    sanctionResolution: string;
-    uuid: string;
-  }> = [];
+  const rows: Array<PayloadData> = [];
 
   const $xml = cheerio.load(text, { xmlMode: true });
 
@@ -56,6 +59,7 @@ export function parseData(text: string) {
     if (!uuid) return;
 
     rows.push({
+      pdfSaved: false,
       index: $(cells[0]).text().trim(),
       resolutionNumber: $(cells[1]).text().trim(),
       companyName: $(cells[2]).text().trim(),

@@ -58,8 +58,9 @@ Este comando iniciará el scraper en el índice 0, procesará 5 elementos en cad
 Ejemplo de uso con flags:
 
 ```bash
-npm start 0 5 10 --run-infinitely --no-extract
+npm start 0 5 10 -- --run-infinitely --no-extract
 ```
+Notar que es necesario anteponer `--` para que los flags puedan ser leídos.
 
 ## Scripts
 
@@ -67,3 +68,8 @@ El archivo `package.json` incluye los siguientes scripts:
 
 *   `npm start`: Ejecuta la herramienta de scraping con los argumentos proporcionados.
 *   `npm run clean`: Elimina todos los archivos de los directorios `data` y `files`.
+
+## Resultados
+
+- Los datos son guardados iterativamente en `data/`
+- Los archivos PDF son guardados en `files/`, cada archivo tiene el **uuid** correspondiente con su entrada en `data/`

@@ -69,6 +69,13 @@ async function main() {
 
   try {
     const { start, limit, jump, runIninitely, extractFiles } = parseArgs(args);
+    console.log("Running Scraper with arguments", {
+      start,
+      limit,
+      jump,
+      runIninitely,
+      extractFiles,
+    });
 
     scraper.runLoop({
       start,
