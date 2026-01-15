@@ -68,7 +68,7 @@ async function main() {
   console.log(state);
 
   if (!state) return;
-  const res_1 = await postJSFEStarter(state);
+  const _ = await postJSFEStarter(state);
   const res_2 = await postJSFEnumerate({
     first: 100,
     rows: 10,
